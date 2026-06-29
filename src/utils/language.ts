@@ -274,6 +274,28 @@ export const languageNameMap: { [key in LanguageCode]: string } = {
     [LanguageCode.Zulu]: "Zulu",
 };
 
+const languageAliases: Partial<Record<LanguageCode, string[]>> = {
+    [LanguageCode.Arabic]: ["arabic", "arabe", "árabe"],
+    [LanguageCode.ChineseSimplified]: ["chinese", "chino", "mandarin"],
+    [LanguageCode.English]: ["english", "ingles", "inglés"],
+    [LanguageCode.French]: ["french", "frances", "francés"],
+    [LanguageCode.German]: ["german", "aleman", "alemán"],
+    [LanguageCode.Italian]: ["italian", "italiano"],
+    [LanguageCode.Japanese]: ["japanese", "japones", "japonés"],
+    [LanguageCode.Portuguese]: ["portuguese", "portugues", "portugués"],
+    [LanguageCode.Spanish]: ["spanish", "espanol", "español"],
+};
+
+function normalizeText(text: string): string {
+    return text
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
 /**
  * Utility function to get a language code by its name.
  * @param languageName - The language name (e.g., "Spanish", "French")
@@ -282,12 +304,24 @@ export const languageNameMap: { [key in LanguageCode]: string } = {
 export function getLanguageCodeByName(
     languageName: string
 ): LanguageCode | undefined {
-    const entries = Object.entries(languageNameMap);
-    for (const [code, name] of entries) {
-        if (name.toLowerCase() === languageName.toLowerCase()) {
+    const normalizedLanguageName = normalizeText(languageName);
+
+    for (const [code, name] of Object.entries(languageNameMap)) {
+        if (normalizeText(name) === normalizedLanguageName) {
             return code as LanguageCode;
         }
     }
+
+    for (const [code, aliases] of Object.entries(languageAliases)) {
+        if (
+            aliases?.some(
+                (alias) => normalizeText(alias) === normalizedLanguageName
+            )
+        ) {
+            return code as LanguageCode;
+        }
+    }
+
     return undefined;
 }
 
@@ -297,19 +331,29 @@ export function getLanguageCodeByName(
  * @returns
  */
 export function detectLanguageChangeCommand(text: string): LanguageCode | null {
-    const cleanedText = text.toLowerCase().replace(/[.,!?]/g, "");
-    const words = cleanedText.split(/\s+/);
+    const normalizedText = normalizeText(text);
 
-    const mustHaveAllKeywords = ["language"];
-    const mustHaveOneKeywords = ["update", "set", "switch", "change"];
+    const commandKeywords = [
+        "add",
+        "also",
+        "change",
+        "idioma",
+        "language",
+        "set",
+        "switch",
+        "translate",
+        "traduce",
+        "traducir",
+        "traduzca",
+        "update",
+    ];
 
-    const containsCommand =
-        mustHaveAllKeywords.every((keyword) => words.includes(keyword)) &&
-        mustHaveOneKeywords.some((keyword) => words.includes(keyword));
+    const containsCommand = commandKeywords.some((keyword) =>
+        normalizedText.includes(keyword)
+    );
     if (!containsCommand) return null;
 
-    const languageMatch = findLanguageInText(text);
-    return languageMatch;
+    return findLanguageInText(text);
 }
 
 /**
@@ -318,11 +362,27 @@ export function detectLanguageChangeCommand(text: string): LanguageCode | null {
  * @returns
  */
 export function findLanguageInText(text: string): LanguageCode | null {
-    const words = text.toLowerCase().split(/\s+/);
+    const normalizedText = ` ${normalizeText(text)} `;
+
+    for (const [code, aliases] of Object.entries(languageAliases)) {
+        if (
+            aliases?.some((alias) =>
+                normalizedText.includes(` ${normalizeText(alias)} `)
+            )
+        ) {
+            return code as LanguageCode;
+        }
+    }
 
     for (const [code, language] of Object.entries(languageNameMap)) {
-        const lowerCaseLanguage = language.toLowerCase();
-        if (words.includes(lowerCaseLanguage)) {
+        const normalizedLanguage = normalizeText(language);
+        const normalizedLanguageWords = normalizedLanguage.split(" ");
+
+        if (
+            normalizedLanguageWords.some((word) =>
+                normalizedText.includes(` ${word} `)
+            )
+        ) {
             return code as LanguageCode;
         }
     }
