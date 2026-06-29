@@ -80,20 +80,12 @@ const getTranslationLines = (
     return baseLanguages;
 };
 
-const getTranscriptSortKey = (transcript: Transcript): number => {
-    const lastWord = transcript.words[transcript.words.length - 1];
-
-    if (lastWord?.end_time !== undefined) {
-        return lastWord.end_time;
-    }
-
-    return transcript.original_transcript_id;
-};
-
 export const useTranscriptWebSocket = (wsUrl: string) => {
     const optionalLanguageRef = useRef<LanguageCode | undefined>(undefined);
     const wsRef = useRef<WebSocket | null>(null);
     const retryIntervalRef = useRef<number | null>(null);
+    const transcriptOrderRef = useRef<Map<number, number>>(new Map());
+    const nextTranscriptOrderRef = useRef(0);
 
     const [finalizedUtterances, setFinalizedUtterances] = useState<Utterance[]>(
         []
@@ -106,6 +98,20 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
     >(undefined);
 
     useEffect(() => {
+        const getTranscriptSortKey = (transcriptId: number): number => {
+            const existingSortKey = transcriptOrderRef.current.get(transcriptId);
+
+            if (existingSortKey !== undefined) {
+                return existingSortKey;
+            }
+
+            const nextSortKey = nextTranscriptOrderRef.current + 1;
+            nextTranscriptOrderRef.current = nextSortKey;
+            transcriptOrderRef.current.set(transcriptId, nextSortKey);
+
+            return nextSortKey;
+        };
+
         const updateFinalizedUtteranceTranslation = (
             utteranceId: string,
             language: LanguageCode,
@@ -213,7 +219,9 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             const utteranceId = `${transcript.original_transcript_id}-${
                 transcript.is_final ? "final" : "current"
             }`;
-            const sortKey = getTranscriptSortKey(transcript);
+            const sortKey = getTranscriptSortKey(
+                transcript.original_transcript_id
+            );
 
             // Show the transcript immediately before waiting for translation.
             // The UI displays "(Translating...)" while each translation is empty.
