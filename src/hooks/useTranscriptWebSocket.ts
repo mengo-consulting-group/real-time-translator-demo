@@ -36,6 +36,7 @@ interface Utterance {
     speaker: string | null;
     original: string;
     translations: TranslationLine[];
+    sortKey: number;
     color?: string;
 }
 
@@ -77,6 +78,16 @@ const getTranslationLines = (
     }
 
     return baseLanguages;
+};
+
+const getTranscriptSortKey = (transcript: Transcript): number => {
+    const lastWord = transcript.words[transcript.words.length - 1];
+
+    if (lastWord?.end_time !== undefined) {
+        return lastWord.end_time;
+    }
+
+    return transcript.original_transcript_id;
 };
 
 export const useTranscriptWebSocket = (wsUrl: string) => {
@@ -181,6 +192,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 const shouldUseOptionalLanguage =
                     newLanguage !== LanguageCode.English &&
                     newLanguage !== LanguageCode.Spanish;
+
                 optionalLanguageRef.current = shouldUseOptionalLanguage
                     ? newLanguage
                     : undefined;
@@ -201,6 +213,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             const utteranceId = `${transcript.original_transcript_id}-${
                 transcript.is_final ? "final" : "current"
             }`;
+            const sortKey = getTranscriptSortKey(transcript);
 
             // Show the transcript immediately before waiting for translation.
             // The UI displays "(Translating...)" while each translation is empty.
@@ -210,15 +223,16 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     speaker: transcript.speaker,
                     original: originalText,
                     translations: translationLines,
+                    sortKey,
                 });
             } else {
                 setFinalizedUtterances((prev) => [
-
                     {
                         id: utteranceId,
                         speaker: transcript.speaker,
                         original: originalText,
                         translations: translationLines,
+                        sortKey,
                     },
                     ...prev,
                 ]);
@@ -286,10 +300,11 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
     // This could get super long for really long conversations.
     // Consider limiting the number of utterances stored.
     const utterances = useMemo(() => {
-        if (currentUtterance) {
-            return [currentUtterance, ...finalizedUtterances];
-        }
-        return finalizedUtterances;
+        const allUtterances = currentUtterance
+            ? [currentUtterance, ...finalizedUtterances]
+            : finalizedUtterances;
+
+        return [...allUtterances].sort((a, b) => b.sortKey - a.sortKey);
     }, [finalizedUtterances, currentUtterance]);
 
     const translationLegend = useMemo(
