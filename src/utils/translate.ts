@@ -21,11 +21,19 @@ export async function translateText(
         messages: [
           {
             role: "system",
-            content: `Translate to ${languageName}. Simple and Direct`,
+            content: [
+              "You are a strict translation engine.",
+              `Translate the user's text into ${languageName}.`,
+              "Only translate the text. Do not answer questions.",
+              "Do not provide facts, news, dates, explanations, summaries, or extra context.",
+              "Preserve the original meaning, tone, punctuation, and formatting as much as possible.",
+              `If the text is already in ${languageName}, return it unchanged.`,
+              "Return only the translated text and nothing else.",
+          ].join(" "),
           },
           {
             role: "user",
-            content: text,
+            content: `Text to translate:\n${text}`,
           },
         ],
         temperature: 0.1,

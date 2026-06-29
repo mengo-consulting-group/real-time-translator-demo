@@ -181,8 +181,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 const shouldUseOptionalLanguage =
                     newLanguage !== LanguageCode.English &&
                     newLanguage !== LanguageCode.Spanish;
-                const previousOptionalLanguage = optionalLanguageRef.current;
-
                 optionalLanguageRef.current = shouldUseOptionalLanguage
                     ? newLanguage
                     : undefined;
@@ -190,28 +188,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     shouldUseOptionalLanguage ? newLanguage : undefined
                 );
                 setCurrentUtterance(null);
-
-                if (
-                    shouldUseOptionalLanguage &&
-                    previousOptionalLanguage !== newLanguage
-                ) {
-                    setFinalizedUtterances((prev) => [
-                        ...prev,
-                        {
-                            id: `language-change-${Date.now()}`,
-                            speaker: null,
-                            original: "",
-                            translations: [
-                                {
-                                    language: newLanguage,
-                                    label: languageNameMap[newLanguage],
-                                    text: `Now also translating to ${languageNameMap[newLanguage]}`,
-                                    color: "#ff8c00",
-                                },
-                            ],
-                        },
-                    ]);
-                }
 
                 return;
             }
