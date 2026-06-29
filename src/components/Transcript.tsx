@@ -40,23 +40,22 @@ const Transcript: React.FC = () => {
                     {isNewSpeaker && item.speaker ? `${item.speaker}` : ""}
                   </div>
                   {item.original ? (
-                    <div className="original-text">
-                      Original: {item.original}
-                    </div>
+                    <div className="original-text">{item.original}</div>
                   ) : null}
                 </div>
 
                 <div className="translations-column">
                   {item.translations.map((translation) => (
-                    <div
-                      key={translation.language}
-                      className="translation-line"
-                      style={{ color: translation.color }}
-                    >
-                      <span className="translation-label">
+                    <div key={translation.language} className="translation-line">
+                      <span
+                        className="translation-label"
+                        style={{ color: translation.color }}
+                      >
                         {translation.label}:
                       </span>{" "}
-                      <span>{translation.text || "(Translating...)"}</span>
+                      <span className="translation-text">
+                        {translation.text || "(Translating...)"}
+                      </span>
                     </div>
                   ))}
                 </div>

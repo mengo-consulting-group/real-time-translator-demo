@@ -54,7 +54,7 @@
 }
 
 .speaker-name {
-  font-size: 0.6rem;
+  font-size: 1.5rem;
   line-height: 1.35;
   font-weight: 600;
   color: var(--primary-color, #6366f1);
@@ -64,7 +64,7 @@
 .translation-line,
 .original-text {
   font-family: "Noto Sans", "Inter", "Segoe UI", "Arial", sans-serif;
-  font-size: 0.6rem;
+  font-size: 1rem;
   line-height: 1.35;
   font-weight: 400;
   margin-bottom: 0.25rem;
@@ -74,8 +74,12 @@
   font-weight: 600;
 }
 
+.translation-text {
+  color: #ffffff;
+}
+
 .original-text {
-  color: #999999;
+  color: #ffffff;
 }
 
 .translation-legend {
