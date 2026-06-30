@@ -28,13 +28,17 @@ const Transcript: React.FC = () => {
     const prevIds = prevBaseIdsRef.current;
     prevBaseIdsRef.current = baseIds;
 
-    // Only snap to bottom when a new base transcript ID appeared
-    // or when user is already near the bottom (within 150px)
-    const distanceFromBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight;
-
-    if (baseIds !== prevIds && distanceFromBottom <= 150) {
+    // Always snap to bottom when a new base transcript ID appeared.
+    // For mere translation updates or partial→final transitions
+    // (where baseIds hasn't changed), only scroll if already near bottom.
+    if (baseIds !== prevIds) {
       container.scrollTop = container.scrollHeight;
+    } else {
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom <= 150) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
   }, [utterances]);
 
