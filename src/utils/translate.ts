@@ -3,14 +3,26 @@ import { LanguageCode, languageNameMap } from "./language";
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
+const TRANSLATION_TIMEOUT_MS = 3000;
+
 export async function translateText(
   text: string,
   targetLanguage: LanguageCode
 ): Promise<string> {
   try {
+    // Skip translation for very short text
+    if (text.trim().length <= 3) return text;
+
     const languageName = languageNameMap[targetLanguage] || targetLanguage;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      TRANSLATION_TIMEOUT_MS
+    );
+
     const response = await fetch(GROQ_API_URL, {
+      signal: controller.signal,
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -40,6 +52,8 @@ export async function translateText(
         max_tokens: 512,
       }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorBody = await response.text();

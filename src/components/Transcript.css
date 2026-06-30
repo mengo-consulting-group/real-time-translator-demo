@@ -36,18 +36,15 @@
 }
 
 .transcript-item {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .transcript-item:first-child .original-text,
-.transcript-item:first-child .translation-line {
-  font-size: 1.5rem;
-}
-
+.transcript-item:first-child .translation-line,
 .transcript-item:first-child .speaker-name {
-  font-size: 1.75rem;
+  font-weight: 700;
 }
 
 .transcript-item:last-child {
@@ -55,11 +52,11 @@
 }
 
 .speaker-name {
-  font-size: 1rem;
-  line-height: 1.35;
+  font-size: 0.75rem;
+  line-height: 1.2;
   font-weight: 600;
   color: var(--primary-color, #6366f1);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
 }
 
 .transcript-columns {
@@ -82,18 +79,18 @@
 
 .original-text {
   font-family: "Noto Sans", "Inter", "Segoe UI", "Arial", sans-serif;
-  font-size: 1rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  line-height: 1.2;
   font-weight: 400;
   color: #ffffff;
 }
 
 .translation-line {
   font-family: "Noto Sans", "Inter", "Segoe UI", "Arial", sans-serif;
-  font-size: 1rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  line-height: 1.2;
   font-weight: 400;
-  margin-bottom: 0.1rem;
+  margin-bottom: 0;
 }
 
 .translation-label {

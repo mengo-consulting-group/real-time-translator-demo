@@ -39,6 +39,8 @@ interface Utterance {
 }
 
     const RECONNECT_RETRY_INTERVAL_MS = 3000;
+const MAX_UTTERANCES = 10;
+const CLEAR_INTERVAL_MS = 60000;
 
 const TRANSLATION_LANGUAGES: TranslationLine[] = [
     {
@@ -197,7 +199,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                         sortKey,
                     },
                     ...prev,
-                ]);
+                ].slice(0, MAX_UTTERANCES));
 
                 // Queue the translation so they process one at a time
                 finalQueue.push(async () => {
@@ -250,6 +252,12 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
         connectWebSocket();
 
+        // Auto-clear all utterances every minute
+        const clearIntervalId = setInterval(() => {
+            setFinalizedUtterances([]);
+            setCurrentUtterances(new Map());
+        }, CLEAR_INTERVAL_MS);
+
         return () => {
             if (wsRef.current) {
                 wsRef.current.close();
@@ -259,6 +267,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 clearInterval(retryIntervalRef.current);
                 retryIntervalRef.current = null;
             }
+            clearInterval(clearIntervalId);
         };
     }, [wsUrl]);
 
