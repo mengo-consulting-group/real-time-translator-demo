@@ -8,21 +8,28 @@ const Transcript: React.FC = () => {
   );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const prevUtteranceCountRef = useRef(0);
+  const prevBaseIdsRef = useRef<string>("");
 
   // New utterances appear at the top of the list (sorted newest-first).
-  // Only auto-scroll to top when a NEW utterance is added, not when
-  // an existing utterance's translation updates (which would cause
-  // the view to snap back to top on every async translation response).
+  // Only auto-scroll to top when a genuinely new transcript arrives,
+  // not when an existing utterance transitions from partial to final
+  // or when a translation text updates asynchronously.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const prevCount = prevUtteranceCountRef.current;
-    prevUtteranceCountRef.current = utterances.length;
+    // Extract base transcript IDs (strip "-current"/"-final" suffix)
+    // so that partial→final transitions don't count as new utterances.
+    const baseIds = utterances
+      .map((u) => u.id.replace(/-(current|final)$/, ""))
+      .filter((id, i, arr) => arr.indexOf(id) === i)
+      .join(",");
 
-    // Only snap to top when a new utterance was actually added
-    if (utterances.length > prevCount && container.scrollTop <= 150) {
+    const prevIds = prevBaseIdsRef.current;
+    prevBaseIdsRef.current = baseIds;
+
+    // Only snap to top when a new base transcript ID appeared
+    if (baseIds !== prevIds && container.scrollTop <= 150) {
       container.scrollTop = 0;
     }
   }, [utterances]);
