@@ -5,6 +5,9 @@
   width: 100%;
   min-height: 0;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .transcript-container {
