@@ -75,6 +75,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
     useEffect(() => {
         // Queue for processing final transcripts one at a time.
+        // Each final waits for its translation to complete before the next is processed.
         const finalQueue: (() => Promise<void>)[] = [];
         let isProcessingQueue = false;
 
@@ -89,9 +90,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
             isProcessingQueue = false;
         };
-
-        // Debounce timers for partial translations keyed by transcriptId
-        const partialTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
         const getTranscriptSortKey = (transcriptId: number): number => {
             const existingSortKey = transcriptOrderRef.current.get(transcriptId);
@@ -153,46 +151,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             );
         };
 
-        const translatePartialUtterance = async (
-            transcriptId: number,
-            utteranceId: string,
-            originalText: string,
-            languages: LanguageCode[]
-        ) => {
-            await Promise.all(
-                languages.map(async (language) => {
-                    const translated = await translateText(
-                        originalText,
-                        language
-                    );
-
-                    // Only update if this partial is still current
-                    // (not replaced by a newer partial or finalized)
-                    setCurrentUtterances((prev) => {
-                        const existing = prev.get(transcriptId);
-                        if (
-                            !existing ||
-                            existing.id !== utteranceId ||
-                            existing.original !== originalText
-                        ) {
-                            return prev;
-                        }
-
-                        const updated = new Map(prev);
-                        updated.set(transcriptId, {
-                            ...existing,
-                            translations: existing.translations.map((t) =>
-                                t.language === language
-                                    ? { ...t, text: translated }
-                                    : t
-                            ),
-                        });
-                        return updated;
-                    });
-                })
-            );
-        };
-
         const handleTranscriptMessage = async (event: MessageEvent) => {
             const message = JSON.parse(event.data) as TranscriptMessage;
             const transcript = message.transcript;
@@ -209,49 +167,21 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             const sortKey = getTranscriptSortKey(transcriptId);
 
             if (!transcript.is_final) {
-                // Show original text with translation placeholders
+                // Show original text only — no translation for partials
                 setCurrentUtterances((prev) => {
-                    const existing = prev.get(transcriptId);
                     const updated = new Map(prev);
                     updated.set(transcriptId, {
                         id: utteranceId,
                         speaker: transcript.speaker,
                         original: originalText,
-                        // Keep existing translations if we have them,
-                        // otherwise start with empty lines
-                        translations: existing?.translations.length
-                            ? existing.translations
-                            : translationLines,
+                        translations: [],
                         sortKey,
                     });
                     return updated;
                 });
-
-                // Debounce partial translation — wait 500ms of no changes
-                const existingTimer = partialTimers.get(transcriptId);
-                if (existingTimer) clearTimeout(existingTimer);
-
-                partialTimers.set(
-                    transcriptId,
-                    setTimeout(() => {
-                        partialTimers.delete(transcriptId);
-                        translatePartialUtterance(
-                            transcriptId,
-                            utteranceId,
-                            originalText,
-                            languages
-                        );
-                    }, 500)
-                );
             } else {
-                // Cancel any pending partial translation
-                const pendingTimer = partialTimers.get(transcriptId);
-                if (pendingTimer) {
-                    clearTimeout(pendingTimer);
-                    partialTimers.delete(transcriptId);
-                }
-
                 // Immediately move from partial to finalized
+                // (single render, no gap where the utterance disappears)
                 setCurrentUtterances((prev) => {
                     if (!prev.has(transcriptId)) return prev;
                     const updated = new Map(prev);
@@ -329,8 +259,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 clearInterval(retryIntervalRef.current);
                 retryIntervalRef.current = null;
             }
-            partialTimers.forEach((timer) => clearTimeout(timer));
-            partialTimers.clear();
         };
     }, [wsUrl]);
 
