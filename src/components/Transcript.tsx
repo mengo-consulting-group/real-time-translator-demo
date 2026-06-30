@@ -10,16 +10,10 @@ const Transcript: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const prevBaseIdsRef = useRef<string>("");
 
-  // New utterances appear at the top of the list (sorted newest-first).
-  // Auto-scroll to top when a genuinely new transcript arrives,
-  // not when an existing utterance transitions from partial to final
-  // or when a translation text updates asynchronously.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    // Extract base transcript IDs (strip "-current"/"-final" suffix)
-    // so that partial→final transitions don't count as new utterances.
     const baseIds = utterances
       .map((u) => u.id.replace(/-(current|final)$/, ""))
       .filter((id, i, arr) => arr.indexOf(id) === i)
@@ -28,10 +22,7 @@ const Transcript: React.FC = () => {
     const prevIds = prevBaseIdsRef.current;
     prevBaseIdsRef.current = baseIds;
 
-    // Always snap to top when a new base transcript ID appeared.
-    // For translation updates or partial→final transitions we do NOT
-    // force scroll — this prevents the "frozen text" visual glitch
-    // caused by resetting scrollTop while item heights are changing.
+    // Always snap to top when a new transcript arrives
     if (baseIds !== prevIds) {
       container.scrollTop = 0;
     }
@@ -49,38 +40,33 @@ const Transcript: React.FC = () => {
         ) : null}
 
         {utterances.map((item, index) => {
-            const isNewSpeaker = item.speaker !== lastSpeaker;
-            lastSpeaker = item.speaker;
+          const isNewSpeaker = item.speaker !== lastSpeaker;
+          lastSpeaker = item.speaker;
 
-            return (
-              <div key={item.id || index} className="transcript-item">
-                <div className="original-column">
-                  <div className="speaker-name">
-                    {isNewSpeaker && item.speaker ? `${item.speaker}` : ""}
-                  </div>
-                  {item.original ? (
-                    <div className="original-text">{item.original}</div>
-                  ) : null}
-                </div>
+          return (
+            <div key={item.id || index} className="transcript-item">
+              {isNewSpeaker && item.speaker ? (
+                <div className="speaker-name">{item.speaker}</div>
+              ) : null}
 
-                <div className="translations-column">
-                  {item.translations.map((translation) => (
-                    <div key={translation.language} className="translation-line">
-                      <span
-                        className="translation-label"
-                        style={{ color: translation.color }}
-                      >
-                        {translation.label}:
-                      </span>{" "}
-                      <span className="translation-text">
-                        {translation.text || "(Translating...)"}
-                      </span>
-                    </div>
-                  ))}
+              <div className="original-text">{item.original}</div>
+
+              {item.translations.map((translation) => (
+                <div key={translation.language} className="translation-line">
+                  <span
+                    className="translation-label"
+                    style={{ color: translation.color }}
+                  >
+                    {translation.label}:
+                  </span>{" "}
+                  <span className="translation-text">
+                    {translation.text || "(Translating...)"}
+                  </span>
                 </div>
-              </div>
-            );
-          })}
+              ))}
+            </div>
+          );
+        })}
       </div>
 
       <div className="translation-legend">

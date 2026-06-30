@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LanguageCode, languageNameMap } from "@/utils/language";
 import { translateText } from "@/utils/translate";
-import { detectLanguageChangeCommand } from "@/utils/language";
 
 interface Word {
     text: string;
@@ -37,12 +36,11 @@ interface Utterance {
     original: string;
     translations: TranslationLine[];
     sortKey: number;
-    color?: string;
 }
 
     const RECONNECT_RETRY_INTERVAL_MS = 3000;
 
-const BASE_TRANSLATION_LANGUAGES: TranslationLine[] = [
+const TRANSLATION_LANGUAGES: TranslationLine[] = [
     {
         language: LanguageCode.English,
         label: languageNameMap[LanguageCode.English],
@@ -57,31 +55,10 @@ const BASE_TRANSLATION_LANGUAGES: TranslationLine[] = [
     },
 ];
 
-const getTranslationLines = (
-    optionalLanguage?: LanguageCode
-): TranslationLine[] => {
-    const baseLanguages = BASE_TRANSLATION_LANGUAGES.map((translation) => ({
-        ...translation,
-    }));
-
-    if (
-        optionalLanguage &&
-        optionalLanguage !== LanguageCode.English &&
-        optionalLanguage !== LanguageCode.Spanish
-    ) {
-        baseLanguages.push({
-            language: optionalLanguage,
-            label: languageNameMap[optionalLanguage],
-            text: "",
-            color: "#c084fc",
-        });
-    }
-
-    return baseLanguages;
-};
+const getTranslationLines = (): TranslationLine[] =>
+    TRANSLATION_LANGUAGES.map((t) => ({ ...t }));
 
 export const useTranscriptWebSocket = (wsUrl: string) => {
-    const optionalLanguageRef = useRef<LanguageCode | undefined>(undefined);
     const wsRef = useRef<WebSocket | null>(null);
     const retryIntervalRef = useRef<number | null>(null);
     const transcriptOrderRef = useRef<Map<number, number>>(new Map());
@@ -93,9 +70,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
     const [currentUtterance, setCurrentUtterance] = useState<Utterance | null>(
         null
     );
-    const [optionalLanguage, setOptionalLanguage] = useState<
-        LanguageCode | undefined
-    >(undefined);
 
     useEffect(() => {
         const getTranscriptSortKey = (transcriptId: number): number => {
@@ -152,7 +126,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
                     if (!isFinal) {
                         setCurrentUtterance((prev) => {
-                            // Ignore stale translations from older partial transcript messages.
                             if (
                                 !prev ||
                                 prev.id !== utteranceId ||
@@ -193,35 +166,8 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 .map((word) => word.text)
                 .join(" ");
 
-            // Only check for language change commands on final transcripts
-            // to avoid false triggers from partial phrases like "Hey Trans..."
-            if (transcript.is_final) {
-                const newLanguage =
-                    detectLanguageChangeCommand(originalText);
-                if (newLanguage) {
-                    const shouldUseOptionalLanguage =
-                        newLanguage !== LanguageCode.English &&
-                        newLanguage !== LanguageCode.Spanish;
-
-                    optionalLanguageRef.current = shouldUseOptionalLanguage
-                        ? newLanguage
-                        : undefined;
-                    setOptionalLanguage(
-                        shouldUseOptionalLanguage ? newLanguage : undefined
-                    );
-                    setCurrentUtterance(null);
-                    setFinalizedUtterances([]);
-
-                return;
-                }
-            }
-
-            const translationLines = getTranslationLines(
-                optionalLanguageRef.current
-            );
-            const languages = translationLines.map(
-                (translation) => translation.language
-            );
+            const translationLines = getTranslationLines();
+            const languages = translationLines.map((t) => t.language);
             const utteranceId = `${transcript.original_transcript_id}-${
                 transcript.is_final ? "final" : "current"
             }`;
@@ -229,8 +175,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 transcript.original_transcript_id
             );
 
-            // Show the transcript immediately before waiting for translation.
-            // The UI displays "(Translating...)" while each translation is empty.
             if (!transcript.is_final) {
                 setCurrentUtterance({
                     id: utteranceId,
@@ -311,48 +255,15 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
         };
     }, [wsUrl]);
 
-    // This could get super long for really long conversations.
-    // Consider limiting the number of utterances stored.
-    //
-    // Normalize every utterance's translation lines to match the current
-    // optional language so that switching languages doesn't leave stale
-    // columns from a previous language visible.
     const utterances = useMemo(() => {
-        const currentLines = getTranslationLines(optionalLanguage);
-
-        const normalize = (utterance: Utterance): Utterance => {
-            // Keep translations that belong to the current language set
-            // and preserve their translated text.
-            const normalized: TranslationLine[] = currentLines.map((line) => {
-                const existing = utterance.translations.find(
-                    (t) => t.language === line.language
-                );
-                return existing ?? { ...line };
-            });
-
-            // Only return a new object if the translations actually changed
-            const languagesMatch =
-                utterance.translations.length === normalized.length &&
-                utterance.translations.every(
-                    (t, i) => t.language === normalized[i].language
-                );
-
-            return languagesMatch
-                ? utterance
-                : { ...utterance, translations: normalized };
-        };
-
         const allUtterances = currentUtterance
-            ? [normalize(currentUtterance), ...finalizedUtterances.map(normalize)]
-            : finalizedUtterances.map(normalize);
+            ? [currentUtterance, ...finalizedUtterances]
+            : finalizedUtterances;
 
         return [...allUtterances].sort((a, b) => b.sortKey - a.sortKey);
-    }, [finalizedUtterances, currentUtterance, optionalLanguage]);
+    }, [finalizedUtterances, currentUtterance]);
 
-    const translationLegend = useMemo(
-        () => getTranslationLines(optionalLanguage),
-        [optionalLanguage]
-    );
+    const translationLegend = getTranslationLines();
 
     return {
         utterances,

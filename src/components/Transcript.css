@@ -32,25 +32,13 @@
 }
 
 .transcript-item {
-  display: flex;
-  justify-content: flex-start;
-  gap: 2rem;
-  margin-bottom: 1rem;
-  width: 100%;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.original-column {
-  width: 30%;
-  min-width: 0;
-  text-align: left;
-  box-sizing: border-box;
-}
-
-.translations-column {
-  width: 60%;
-  min-width: 0;
-  text-align: left;
-  box-sizing: border-box;
+.transcript-item:last-child {
+  border-bottom: none;
 }
 
 .speaker-name {
@@ -58,16 +46,24 @@
   line-height: 1.35;
   font-weight: 600;
   color: var(--primary-color, #6366f1);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
-.translation-line,
 .original-text {
   font-family: "Noto Sans", "Inter", "Segoe UI", "Arial", sans-serif;
   font-size: 1rem;
-  line-height: 1.35;
+  line-height: 1.45;
   font-weight: 400;
-  margin-bottom: 0.25rem;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+}
+
+.translation-line {
+  font-family: "Noto Sans", "Inter", "Segoe UI", "Arial", sans-serif;
+  font-size: 1rem;
+  line-height: 1.45;
+  font-weight: 400;
+  margin-bottom: 0.15rem;
 }
 
 .translation-label {
@@ -75,10 +71,6 @@
 }
 
 .translation-text {
-  color: #ffffff;
-}
-
-.original-text {
   color: #ffffff;
 }
 
