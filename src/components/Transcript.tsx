@@ -10,8 +10,8 @@ const Transcript: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Always scroll to top on any utterance change.
-  // Use both immediate and requestAnimationFrame to guarantee it works
-  // even when the DOM is still laying out after a render.
+  // Triple-guarantee: immediate, requestAnimationFrame, and setTimeout
+  // to handle all browser timing edge cases.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -19,6 +19,10 @@ const Transcript: React.FC = () => {
     requestAnimationFrame(() => {
       container.scrollTop = 0;
     });
+    const timer = setTimeout(() => {
+      container.scrollTop = 0;
+    }, 50);
+    return () => clearTimeout(timer);
   }, [utterances]);
 
   return (
