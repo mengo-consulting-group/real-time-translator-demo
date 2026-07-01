@@ -111,7 +111,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             }
 
             isProcessingQueue = false;
-                    };
+        };
 
         const getTranscriptSortKey = (transcriptId: number): number => {
             const existingSortKey = transcriptOrderRef.current.get(transcriptId);
@@ -125,7 +125,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             transcriptOrderRef.current.set(transcriptId, nextSortKey);
 
             return nextSortKey;
-                    };
+        };
 
         const updateFinalizedUtteranceTranslation = (
             utteranceId: string,
@@ -150,7 +150,17 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                         : item
                 )
             );
-                    };
+        };
+
+        const readUtteranceText = (utteranceId: string): Promise<string> => {
+            return new Promise((resolve) => {
+                setFinalizedUtterances((prev) => {
+                    const utterance = prev.find((u) => u.id === utteranceId);
+                    resolve(utterance?.original || "");
+                    return prev; // no mutation, just reading
+                });
+            });
+        };
 
         const translateFinalUtterance = async (
             utteranceId: string,
@@ -158,14 +168,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
         ) => {
             // Read the current text from state at translation time,
             // so coalesced appends are included
-            let originalText = "";
-            setFinalizedUtterances((prev) => {
-                const utterance = prev.find((u) => u.id === utteranceId);
-                if (utterance) {
-                    originalText = utterance.original;
-                }
-                return prev; // no mutation, just reading
-            });
+            const originalText = await readUtteranceText(utteranceId);
 
             if (!originalText) return;
 
@@ -183,7 +186,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     );
                 })
             );
-                    };
+        };
 
         const scheduleTranslation = (
             utteranceId: string,
@@ -218,7 +221,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
                 processQueue();
             }, COALESCE_WINDOW_MS);
-                    };
+        };
 
         const handleTranscriptMessage = async (event: MessageEvent) => {
             const message = JSON.parse(event.data) as TranscriptMessage;
@@ -341,7 +344,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     scheduleTranslation(utteranceId, languages);
                 }
             }
-                    };
+        };
 
         const attemptReconnect = () => {
             if (!retryIntervalRef.current) {
@@ -350,7 +353,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     connectWebSocket();
                 }, RECONNECT_RETRY_INTERVAL_MS);
             }
-                    };
+        };
 
         const connectWebSocket = () => {
             if (wsRef.current) return;
@@ -377,7 +380,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 console.error("WebSocket error:", error);
                 wsRef.current?.close();
             };
-                    };
+        };
 
         connectWebSocket();
 
@@ -406,7 +409,7 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                 coalesceTimerRef.current = null;
             }
             clearInterval(clearIntervalId);
-                    };
+        };
     }, [wsUrl]);
 
     const utterances = useMemo(() => {
