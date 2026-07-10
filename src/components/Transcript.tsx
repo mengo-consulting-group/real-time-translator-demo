@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useTranscriptWebSocket } from "@/hooks/useTranscriptWebSocket";
+import { LanguageCode } from "@/utils/language";
 import "./Transcript.css";
 
 const Transcript: React.FC = () => {
@@ -10,8 +11,6 @@ const Transcript: React.FC = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Always scroll to top on any utterance change.
-  // Triple-guarantee: immediate, requestAnimationFrame, and setTimeout
-  // to handle all browser timing edge cases.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -25,8 +24,24 @@ const Transcript: React.FC = () => {
     return () => clearTimeout(timer);
   }, [utterances]);
 
+  const getTranslationText = (
+    translations: { language: LanguageCode; text: string }[],
+    language: LanguageCode
+  ): string => {
+    const found = translations.find((t) => t.language === language);
+    if (!found) return "";
+    return found.text || "(Translating...)";
+  };
+
   return (
     <div className="transcript-wrapper">
+      {/* Column headers */}
+      <div className="transcript-header">
+        <div className="transcript-header-cell header-original">Original</div>
+        <div className="transcript-header-cell header-english">English</div>
+        <div className="transcript-header-cell header-spanish">Spanish</div>
+      </div>
+
       <div className="transcript-container" ref={containerRef}>
         {!utterances.length ? (
           <div className="waiting-message">
@@ -36,30 +51,23 @@ const Transcript: React.FC = () => {
 
         {utterances.map((item, index) => (
           <div key={item.id || index} className="transcript-item">
-            {item.speaker ? (
-              <div className="speaker-name">{item.speaker}</div>
-            ) : null}
+            <div className="col-original">
+              {item.speaker ? (
+                <div className="speaker-name">{item.speaker}</div>
+              ) : null}
+              <div className="original-text">{item.original}</div>
+            </div>
 
-            <div className="transcript-columns">
-              <div className="original-column">
-                <div className="original-text">{item.original}</div>
-              </div>
+            <div className="col-english">
+              <span className="translation-text">
+                {getTranslationText(item.translations, LanguageCode.English)}
+              </span>
+            </div>
 
-              <div className="translations-column">
-                {item.translations.map((translation) => (
-                  <div key={translation.language} className="translation-line">
-                    <span
-                      className="translation-label"
-                      style={{ color: translation.color }}
-                    >
-                      {translation.label}:
-                    </span>{" "}
-                    <span className="translation-text">
-                      {translation.text || "(Translating...)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            <div className="col-spanish">
+              <span className="translation-text">
+                {getTranslationText(item.translations, LanguageCode.Spanish)}
+              </span>
             </div>
           </div>
         ))}
