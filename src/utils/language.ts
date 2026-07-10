@@ -329,6 +329,9 @@ const WAKE_PHRASES = [
     "hey translator",
     "hey traductor",
     "hey proxy",
+    "translator",
+    "traductor",
+    "proxy",
 ];
 
 const ADD_KEYWORDS = ["add", "agregar", "anadir", "añadir"];
