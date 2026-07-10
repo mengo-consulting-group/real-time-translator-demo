@@ -325,37 +325,64 @@ export function getLanguageCodeByName(
     return undefined;
 }
 
+const WAKE_PHRASES = [
+    "hey translator",
+    "hey traductor",
+    "hey proxy",
+];
+
+const ADD_KEYWORDS = ["add", "agregar", "anadir", "añadir"];
+const REMOVE_KEYWORDS = ["remove", "remover", "quitar", "eliminar"];
+
 /**
- * Detects a language change command in the given text.
+ * Detects an "add language" voice command in the given text.
  *
- * The speaker must use an explicit wake phrase to trigger a language change:
- *   - "Hey Translator" (English)
- *   - "Hey Traductor" (Spanish)
- *   - "Hey Proxy" (brand name)
- *
- * Followed by a language name, e.g.:
- *   "Hey Translator, add Japanese"
- *   "Hey Traductor, cambiar a francés"
- *   "Hey Proxy, switch to Hindi"
+ * The speaker must use a wake phrase followed by an add keyword and a language name:
+ *   - "Hey Translator, add Japanese"
+ *   - "Hey Traductor, agregar francés"
+ *   - "Hey Proxy, add Hindi"
  *
  * @param text
- * @returns The detected language code, or null if no valid command was found.
+ * @returns The detected language code, or null if no valid add command was found.
  */
-export function detectLanguageChangeCommand(text: string): LanguageCode | null {
+export function detectAddLanguageCommand(text: string): LanguageCode | null {
     const normalizedText = normalizeText(text);
 
-    const wakePhrases = [
-        "hey translator",
-        "hey traductor",
-        "hey proxy",
-    ];
-
-    const hasWakePhrase = wakePhrases.some((phrase) =>
+    const hasWakePhrase = WAKE_PHRASES.some((phrase) =>
         normalizedText.includes(phrase)
     );
     if (!hasWakePhrase) return null;
 
+    const hasAddKeyword = ADD_KEYWORDS.some((keyword) =>
+        normalizedText.includes(keyword)
+    );
+    if (!hasAddKeyword) return null;
+
     return findLanguageInText(text);
+}
+
+/**
+ * Detects a "remove language" voice command in the given text.
+ *
+ * The speaker must use a wake phrase followed by a remove keyword:
+ *   - "Hey Translator, remove"
+ *   - "Hey Traductor, remover"
+ *   - "Hey Proxy, quitar"
+ *
+ * @param text
+ * @returns true if a valid remove command was detected.
+ */
+export function detectRemoveLanguageCommand(text: string): boolean {
+    const normalizedText = normalizeText(text);
+
+    const hasWakePhrase = WAKE_PHRASES.some((phrase) =>
+        normalizedText.includes(phrase)
+    );
+    if (!hasWakePhrase) return false;
+
+    return REMOVE_KEYWORDS.some((keyword) =>
+        normalizedText.includes(keyword)
+    );
 }
 
 /**

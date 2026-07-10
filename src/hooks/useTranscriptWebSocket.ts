@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LanguageCode, languageNameMap } from "@/utils/language";
+import { LanguageCode, languageNameMap, detectAddLanguageCommand, detectRemoveLanguageCommand } from "@/utils/language";
 import { translateText } from "@/utils/translate";
 
 interface Word {
@@ -47,7 +47,7 @@ const CLEAR_INTERVAL_MS = 60000;
 // it gets merged into the previous utterance instead of creating a new one.
 const COALESCE_WINDOW_MS = 500;
 
-const TRANSLATION_LANGUAGES: TranslationLine[] = [
+const BASE_TRANSLATION_LANGUAGES: TranslationLine[] = [
     {
         language: LanguageCode.English,
         label: languageNameMap[LanguageCode.English],
@@ -62,14 +62,25 @@ const TRANSLATION_LANGUAGES: TranslationLine[] = [
     },
 ];
 
-const getTranslationLines = (): TranslationLine[] =>
-    TRANSLATION_LANGUAGES.map((t) => ({ ...t }));
+const EXTRA_LANGUAGE_COLOR = "#4ade80";
 
 export const useTranscriptWebSocket = (wsUrl: string) => {
     const wsRef = useRef<WebSocket | null>(null);
     const retryIntervalRef = useRef<number | null>(null);
     const transcriptOrderRef = useRef<Map<number, number>>(new Map());
     const nextTranscriptOrderRef = useRef(0);
+
+    // Optional extra language added via voice command
+    const [extraLanguage, setExtraLanguage] = useState<TranslationLine | null>(null);
+    const extraLanguageRef = useRef<TranslationLine | null>(null);
+
+    const getTranslationLines = (): TranslationLine[] => {
+        const lines = BASE_TRANSLATION_LANGUAGES.map((t) => ({ ...t }));
+        if (extraLanguageRef.current) {
+            lines.push({ ...extraLanguageRef.current, text: "" });
+        }
+        return lines;
+    };
 
     // Track the last finalized utterance info for coalescing rapid finals
     const lastFinalRef = useRef<{
@@ -210,6 +221,24 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
             const originalText = transcript.words
                 .map((word) => word.text)
                 .join(" ");
+
+            // Check for voice commands to add/remove extra language
+            if (transcript.is_final) {
+                const addLang = detectAddLanguageCommand(originalText);
+                if (addLang && addLang !== LanguageCode.English && addLang !== LanguageCode.Spanish) {
+                    const newExtra: TranslationLine = {
+                        language: addLang,
+                        label: languageNameMap[addLang],
+                        text: "",
+                        color: EXTRA_LANGUAGE_COLOR,
+                    };
+                    extraLanguageRef.current = newExtra;
+                    setExtraLanguage(newExtra);
+                } else if (detectRemoveLanguageCommand(originalText)) {
+                    extraLanguageRef.current = null;
+                    setExtraLanguage(null);
+                }
+            }
 
             const translationLines = getTranslationLines();
             const languages = translationLines.map((t) => t.language);
@@ -400,11 +429,18 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
         return allUtterances.sort((a, b) => b.sortKey - a.sortKey);
     }, [finalizedUtterances, currentUtterances]);
 
-    const translationLegend = getTranslationLines();
+    const translationLegend = useMemo(() => {
+        const lines = BASE_TRANSLATION_LANGUAGES.map((t) => ({ ...t }));
+        if (extraLanguage) {
+            lines.push({ ...extraLanguage, text: "" });
+        }
+        return lines;
+    }, [extraLanguage]);
 
     return {
         utterances,
         translationLegend,
+        extraLanguage,
     };
 };
 

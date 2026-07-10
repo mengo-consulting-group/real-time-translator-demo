@@ -4,11 +4,14 @@ import { LanguageCode } from "@/utils/language";
 import "./Transcript.css";
 
 const Transcript: React.FC = () => {
-  const { utterances, translationLegend } = useTranscriptWebSocket(
+  const { utterances, translationLegend, extraLanguage } = useTranscriptWebSocket(
     "wss://meeting-data.bot.recall.ai/api/v1/transcript"
   );
 
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const columnCount = extraLanguage ? 4 : 3;
+  const gridStyle = { gridTemplateColumns: `repeat(${columnCount}, 1fr)` };
 
   // Always scroll to top on any utterance change.
   useEffect(() => {
@@ -36,10 +39,18 @@ const Transcript: React.FC = () => {
   return (
     <div className="transcript-wrapper">
       {/* Column headers */}
-      <div className="transcript-header">
+      <div className="transcript-header" style={gridStyle}>
         <div className="transcript-header-cell header-original">Original</div>
         <div className="transcript-header-cell header-english">English</div>
         <div className="transcript-header-cell header-spanish">Spanish</div>
+        {extraLanguage ? (
+          <div
+            className="transcript-header-cell"
+            style={{ color: extraLanguage.color }}
+          >
+            {extraLanguage.label}
+          </div>
+        ) : null}
       </div>
 
       <div className="transcript-container" ref={containerRef}>
@@ -50,7 +61,7 @@ const Transcript: React.FC = () => {
         ) : null}
 
         {utterances.map((item, index) => (
-          <div key={item.id || index} className="transcript-item">
+          <div key={item.id || index} className="transcript-item" style={gridStyle}>
             <div className="col-original">
               {item.speaker ? (
                 <div className="speaker-name">{item.speaker}</div>
@@ -69,11 +80,23 @@ const Transcript: React.FC = () => {
                 {getTranslationText(item.translations, LanguageCode.Spanish)}
               </span>
             </div>
+
+            {extraLanguage ? (
+              <div className="col-extra">
+                <span className="translation-text">
+                  {getTranslationText(item.translations, extraLanguage.language)}
+                </span>
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
 
       <div className="translation-legend">
+        <div className="legend-item original-legend">
+          <span className="legend-color original-color" />
+          <span>Original</span>
+        </div>
         {translationLegend.map((translation) => (
           <div key={translation.language} className="legend-item">
             <span
@@ -83,10 +106,6 @@ const Transcript: React.FC = () => {
             <span>{translation.label}</span>
           </div>
         ))}
-        <div className="legend-item original-legend">
-          <span className="legend-color original-color" />
-          <span>Original</span>
-        </div>
       </div>
     </div>
   );
