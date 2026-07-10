@@ -45,7 +45,7 @@ const CLEAR_INTERVAL_MS = 60000;
 // Time window to coalesce rapid consecutive finals from the same speaker.
 // If a new final arrives within this window from the same speaker,
 // it gets merged into the previous utterance instead of creating a new one.
-const COALESCE_WINDOW_MS = 1500;
+const COALESCE_WINDOW_MS = 500;
 
 const TRANSLATION_LANGUAGES: TranslationLine[] = [
     {
@@ -96,22 +96,6 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
     >(new Map());
 
     useEffect(() => {
-        // Queue for processing final transcripts one at a time.
-        // Each final waits for its translation to complete before the next is processed.
-        const finalQueue: (() => Promise<void>)[] = [];
-        let isProcessingQueue = false;
-
-        const processQueue = async () => {
-            if (isProcessingQueue) return;
-            isProcessingQueue = true;
-
-            while (finalQueue.length > 0) {
-                const task = finalQueue.shift()!;
-                await task();
-            }
-
-            isProcessingQueue = false;
-        };
 
         const getTranscriptSortKey = (transcriptId: number): number => {
             const existingSortKey = transcriptOrderRef.current.get(transcriptId);
