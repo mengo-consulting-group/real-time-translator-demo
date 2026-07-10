@@ -199,11 +199,8 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
                     )
                     );
 
-                finalQueue.push(async () => {
-                    await translateFinalUtterance(utteranceId, languages);
-                });
-
-                processQueue();
+                // Fire translation immediately — no sequential queue needed
+                translateFinalUtterance(utteranceId, languages);
             }, COALESCE_WINDOW_MS);
         };
 
