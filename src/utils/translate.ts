@@ -3,18 +3,12 @@ import { LanguageCode, languageNameMap } from "./language";
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-const TRANSLATION_TIMEOUT_MS = 3000;
+const TRANSLATION_TIMEOUT_MS = 5000;
 
-export async function translateText(
+async function callTranslationAPI(
   text: string,
-  targetLanguage: LanguageCode
+  targetLanguageName: string
 ): Promise<string> {
-  try {
-    // Skip translation for very short text
-    if (text.trim().length <= 3) return text;
-
-    const languageName = languageNameMap[targetLanguage] || targetLanguage;
-
     const controller = new AbortController();
     const timeoutId = setTimeout(
       () => controller.abort(),
@@ -29,17 +23,17 @@ export async function translateText(
         Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "openai/gpt-oss-20b",
+      model: "openai/gpt-oss-120b",
         messages: [
           {
             role: "system",
             content: [
               "You are a strict translation engine.",
-              `Translate the user's text into ${languageName}.`,
+            `Translate the user's text into ${targetLanguageName}.`,
               "Only translate the text. Do not answer questions.",
               "Do not provide facts, news, dates, explanations, summaries, or extra context.",
               "Preserve the original meaning, tone, punctuation, and formatting as much as possible.",
-              `If the text is already in ${languageName}, return it unchanged.`,
+            `If the text is already in ${targetLanguageName}, return it unchanged.`,
               "Return only the translated text and nothing else.",
           ].join(" "),
           },
@@ -58,21 +52,45 @@ export async function translateText(
     if (!response.ok) {
       const errorBody = await response.text();
 
-      console.error("[translateText] Request failed", {
+    console.error("[callTranslationAPI] Request failed", {
         status: response.status,
         statusText: response.statusText,
         errorBody,
       });
 
-      // Return original text as fallback so it never shows "(Translating...)" forever
       return text;
     }
 
     const result = (await response.json()) as GroqResponse;
     return result.choices[0]?.message?.content?.trim() || text;
+  }
+
+/**
+ * Translates text to the target language.
+ * For English: translates directly from the original.
+ * For other languages: chains through English first for better quality.
+ */
+export async function translateText(
+  text: string,
+  targetLanguage: LanguageCode,
+  englishTranslation?: string
+): Promise<string> {
+  try {
+    // Skip translation for very short text
+    if (text.trim().length <= 3) return text;
+
+    const languageName = languageNameMap[targetLanguage] || targetLanguage;
+
+    // For English, translate directly from original
+    if (targetLanguage === LanguageCode.English) {
+      return await callTranslationAPI(text, languageName);
+}
+
+    // For other languages, use the English translation as source for better quality
+    const source = englishTranslation || text;
+    return await callTranslationAPI(source, languageName);
   } catch (error) {
     console.error("Error translating text:", error);
-    // Return original text as fallback
     return text;
   }
 }
@@ -84,3 +102,4 @@ type GroqResponse = {
     };
   }[];
 };
+

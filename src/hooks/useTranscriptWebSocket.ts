@@ -167,20 +167,42 @@ export const useTranscriptWebSocket = (wsUrl: string) => {
 
             if (!originalText) return;
 
-            await Promise.all(
-                languages.map(async (language) => {
-                    const translated = await translateText(
-                        originalText,
-                        language
-                    );
+            // Step 1: Translate to English first (direct from original)
+            let englishTranslation: string | undefined;
+            if (languages.includes(LanguageCode.English)) {
+                englishTranslation = await translateText(
+                    originalText,
+                    LanguageCode.English
+                );
+                updateFinalizedUtteranceTranslation(
+                    utteranceId,
+                    LanguageCode.English,
+                    englishTranslation
+                );
+            }
 
-                    updateFinalizedUtteranceTranslation(
-                        utteranceId,
-                        language,
-                        translated
-                    );
-                })
+            // Step 2: Translate other languages using English as source
+            const otherLanguages = languages.filter(
+                (lang) => lang !== LanguageCode.English
             );
+
+            if (otherLanguages.length > 0) {
+                await Promise.all(
+                    otherLanguages.map(async (language) => {
+                        const translated = await translateText(
+                            originalText,
+                            language,
+                            englishTranslation
+                        );
+
+                        updateFinalizedUtteranceTranslation(
+                            utteranceId,
+                            language,
+                            translated
+                        );
+                    })
+                );
+            }
         };
 
         const scheduleTranslation = (
