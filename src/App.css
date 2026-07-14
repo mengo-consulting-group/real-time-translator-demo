@@ -42,7 +42,7 @@ body {
 
 .app-title {
   color: #ffffff;
-  font-size: 1.4rem;
+  font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
 }
@@ -81,7 +81,7 @@ body {
 
 .rec-text {
   color: #ff4444;
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -91,11 +91,21 @@ body {
 
 .app-footer {
   flex-shrink: 0;
-  align-self: flex-end;
-  padding: 0.5rem 1rem;
+  width: 100%;
+  padding: 0.5rem 2rem;
   box-sizing: border-box;
-  font-size: 0.75rem;
+  font-size: 0.9375rem;
   color: #666;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.language-hint {
+  font-size: 0.8rem;
+  color: #888;
+  line-height: 1.5;
 }
 
 .app-footer a {

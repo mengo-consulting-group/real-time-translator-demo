@@ -20,7 +20,14 @@ const App: React.FC = () => {
       </header>
       <Transcript />
       <footer className="app-footer">
-        Powered by: <a href="https://proxy4.ai" target="_blank" rel="noopener noreferrer">proxy4.ai</a>
+        <div className="language-hint">
+          🗣️ To add a language, say: <strong>"Hey Translator, add [language]"</strong> — To remove it: <strong>"Hey Translator, remove"</strong>
+          <br />
+          🗣️ Para agregar un idioma, diga: <strong>"Hey Traductor, agregar [idioma]"</strong> — Para quitarlo: <strong>"Hey Traductor, quitar"</strong>
+        </div>
+        <div>
+          Powered by: <a href="https://proxy4.ai" target="_blank" rel="noopener noreferrer">proxy4.ai</a>
+        </div>
       </footer>
     </div>
   );
