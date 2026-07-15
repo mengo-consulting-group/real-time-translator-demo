@@ -11,7 +11,7 @@
 }
 
 .transcript-container {
-  background-color: inherit;
+  background-color: #1b1b1b;
   color: #e0e0e0;
   padding: 0 2rem 1rem;
   width: 100%;
@@ -21,6 +21,7 @@
   overflow-anchor: none;
   position: relative;
   box-sizing: border-box;
+  will-change: transform;
 }
 
 .transcript-container::after {
